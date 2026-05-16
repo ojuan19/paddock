@@ -10,7 +10,8 @@ import (
 )
 
 func NewListCmd() *cobra.Command {
-	return &cobra.Command{
+	var showLinks bool
+	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List profiles",
@@ -39,9 +40,13 @@ func NewListCmd() *cobra.Command {
 
 			for _, name := range names {
 				count := 0
-				for _, p := range links.Links {
+				var dirs []string
+				for dir, p := range links.Links {
 					if p == name {
 						count++
+						if showLinks {
+							dirs = append(dirs, dir)
+						}
 					}
 				}
 				line := fmt.Sprintf("%s  linked to %d dirs", name, count)
@@ -49,8 +54,16 @@ func NewListCmd() *cobra.Command {
 					line += "\t[default]"
 				}
 				fmt.Fprintln(out, line)
+				if showLinks && len(dirs) > 0 {
+					sort.Strings(dirs)
+					for _, d := range dirs {
+						fmt.Fprintf(out, "  %s\n", d)
+					}
+				}
 			}
 			return nil
 		},
 	}
+	cmd.Flags().BoolVar(&showLinks, "links", false, "show linked directories under each profile")
+	return cmd
 }

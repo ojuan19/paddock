@@ -21,6 +21,8 @@ func newRootCmd() *cobra.Command {
 		commands.NewListCmd(),
 		commands.NewRunCmd(),
 		commands.NewWhichCmd(),
+		commands.NewLinkCmd(),
+		commands.NewUnlinkCmd(),
 	)
 	return root
 }
