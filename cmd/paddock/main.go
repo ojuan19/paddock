@@ -1,20 +1,27 @@
 package main
 
 import (
-	"fmt"
 	"os"
+
+	"github.com/spf13/cobra"
+
+	"github.com/ojuan19/paddock/internal/commands"
 )
 
 const version = "0.0.1-dev"
 
-func main() {
-	if len(os.Args) > 1 {
-		switch os.Args[1] {
-		case "--version", "-v":
-			fmt.Println("paddock", version)
-			return
-		}
+func newRootCmd() *cobra.Command {
+	root := &cobra.Command{
+		Use:     "paddock",
+		Short:   "Multi-Claude Code account manager",
+		Version: version,
 	}
-	fmt.Println("paddock — multi-Claude control plane")
-	fmt.Println("Subcommands land in Round 1. Run with --version for version info.")
+	root.AddCommand(commands.NewAddCmd(), commands.NewListCmd())
+	return root
+}
+
+func main() {
+	if err := newRootCmd().Execute(); err != nil {
+		os.Exit(1)
+	}
 }
