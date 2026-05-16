@@ -16,7 +16,12 @@ func newRootCmd() *cobra.Command {
 		Short:   "Multi-Claude Code account manager",
 		Version: version,
 	}
-	root.AddCommand(commands.NewAddCmd(), commands.NewListCmd())
+	root.AddCommand(
+		commands.NewAddCmd(),
+		commands.NewListCmd(),
+		commands.NewRunCmd(),
+		commands.NewWhichCmd(),
+	)
 	return root
 }
 

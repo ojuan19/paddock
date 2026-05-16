@@ -12,9 +12,9 @@ import (
 const CurrentVersion = 1
 
 type Profile struct {
-	Color      string    `json:"color"`
-	CreatedAt  time.Time `json:"created_at"`
-	LastUsedAt time.Time `json:"last_used_at,omitempty"`
+	Color      string     `json:"color"`
+	CreatedAt  time.Time  `json:"created_at"`
+	LastUsedAt *time.Time `json:"last_used_at,omitempty"`
 }
 
 type Config struct {
@@ -57,6 +57,12 @@ func Load() (*Config, error) {
 	if c.Profiles == nil {
 		c.Profiles = map[string]Profile{}
 	}
+	for name, p := range c.Profiles {
+		if p.LastUsedAt != nil && p.LastUsedAt.IsZero() {
+			p.LastUsedAt = nil
+			c.Profiles[name] = p
+		}
+	}
 	return &c, nil
 }
 
@@ -91,4 +97,14 @@ func (c *Config) AutoAssignColor() string {
 		}
 	}
 	return AllowedColors[len(c.Profiles)%len(AllowedColors)]
+}
+
+func (c *Config) TouchLastUsed(name string) {
+	p, ok := c.Profiles[name]
+	if !ok {
+		return
+	}
+	now := time.Now().UTC()
+	p.LastUsedAt = &now
+	c.Profiles[name] = p
 }
