@@ -1,0 +1,15 @@
+# Binaries
+/paddock
+paddock-*
+
+# Go test artifacts
+*.test
+*.out
+coverage.txt
+
+# OS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
