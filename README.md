@@ -93,7 +93,7 @@ Requires Go 1.21+.
 
 ## Contributing
 
-Project is alpha and I'm working through the [build plan](https://github.com/ojuan19/paddock/blob/main/) in tight rounds. Issues and PRs welcome after v0.1 ships. Until then, star ⭐ the repo to follow along.
+Project is alpha and I'm working through a tight build plan in rounds (a few commits per round, then break). Issues and PRs welcome after v0.1 ships. Until then, star ⭐ the repo to follow along.
 
 ## License
 
