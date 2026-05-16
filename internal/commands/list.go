@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/ojuan19/paddock/internal/config"
+	"github.com/ojuan19/paddock/internal/ui"
 )
 
 func NewListCmd() *cobra.Command {
@@ -28,15 +29,17 @@ func NewListCmd() *cobra.Command {
 
 			out := cmd.OutOrStdout()
 			if len(c.Profiles) == 0 {
-				fmt.Fprintln(out, "No profiles yet. Run 'paddock add <name>'.")
+				fmt.Fprintln(out, ui.Muted("No profiles yet. Run '")+ui.Bold("paddock add <name>")+ui.Muted("'."))
 				return nil
 			}
 
-			names := make([]string, 0, len(c.Profiles))
-			for n := range c.Profiles {
-				names = append(names, n)
+			names := profileNames(c)
+			maxLen := 0
+			for _, n := range names {
+				if len(n) > maxLen {
+					maxLen = len(n)
+				}
 			}
-			sort.Strings(names)
 
 			for _, name := range names {
 				count := 0
@@ -49,15 +52,22 @@ func NewListCmd() *cobra.Command {
 						}
 					}
 				}
-				line := fmt.Sprintf("%s  linked to %d dirs", name, count)
+				p := c.Profiles[name]
+				padded := fmt.Sprintf("%-*s", maxLen, name)
+				dot := ui.ProfileDot(p.Color)
+				prefix := ""
+				if dot != "" {
+					prefix = dot + " "
+				}
+				line := prefix + ui.ProfileName(p.Color, padded) + "  " + ui.Muted(fmt.Sprintf("linked to %d dirs", count))
 				if name == c.DefaultProfile {
-					line += "\t[default]"
+					line += "  " + ui.Muted("[default]")
 				}
 				fmt.Fprintln(out, line)
 				if showLinks && len(dirs) > 0 {
 					sort.Strings(dirs)
 					for _, d := range dirs {
-						fmt.Fprintf(out, "  %s\n", d)
+						fmt.Fprintln(out, "  "+ui.Path(d))
 					}
 				}
 			}

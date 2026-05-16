@@ -32,11 +32,24 @@ var (
 	ErrProfileNotInConfig = errors.New("profile referenced but not in config")
 )
 
+type NotInConfigError struct {
+	Name   string
+	Source string
+}
+
+func (e *NotInConfigError) Error() string {
+	return fmt.Sprintf("%s: profile not in config: %q", e.Source, e.Name)
+}
+
+func (e *NotInConfigError) Is(target error) bool {
+	return target == ErrProfileNotInConfig
+}
+
 func Resolve(pwd string, cfg *config.Config, links *config.Links) (Result, error) {
 	// Rule 1: $PADDOCK_PROFILE
 	if val, ok := os.LookupEnv("PADDOCK_PROFILE"); ok && val != "" {
 		if _, exists := cfg.Profiles[val]; !exists {
-			return Result{}, fmt.Errorf("%w: $PADDOCK_PROFILE=%q", ErrProfileNotInConfig, val)
+			return Result{}, &NotInConfigError{Name: val, Source: "$PADDOCK_PROFILE"}
 		}
 		return Result{Profile: val, Rule: RuleEnvVar}, nil
 	}
@@ -54,7 +67,7 @@ func Resolve(pwd string, cfg *config.Config, links *config.Links) (Result, error
 					return Result{}, fmt.Errorf("%w: %s contains %q", ErrInvalidDotPaddock, dotPath, name)
 				}
 				if _, exists := cfg.Profiles[name]; !exists {
-					return Result{}, fmt.Errorf("%w: .paddock at %s references %q", ErrProfileNotInConfig, cur, name)
+					return Result{}, &NotInConfigError{Name: name, Source: fmt.Sprintf(".paddock file at %s", cur)}
 				}
 				return Result{Profile: name, Rule: RuleDotPaddockFile, Source: cur}, nil
 			}
@@ -92,7 +105,7 @@ func Resolve(pwd string, cfg *config.Config, links *config.Links) (Result, error
 		if bestMatch != "" {
 			name := links.Links[bestMatch]
 			if _, exists := cfg.Profiles[name]; !exists {
-				return Result{}, fmt.Errorf("%w: links.json entry for %s references %q", ErrProfileNotInConfig, bestMatch, name)
+				return Result{}, &NotInConfigError{Name: name, Source: fmt.Sprintf("links.json entry for %s", bestMatch)}
 			}
 			return Result{Profile: name, Rule: RuleLinksJSON, Source: bestMatch}, nil
 		}
@@ -101,7 +114,7 @@ func Resolve(pwd string, cfg *config.Config, links *config.Links) (Result, error
 	// Rule 4: default profile
 	if cfg.DefaultProfile != "" {
 		if _, exists := cfg.Profiles[cfg.DefaultProfile]; !exists {
-			return Result{}, fmt.Errorf("%w: default_profile=%q", ErrProfileNotInConfig, cfg.DefaultProfile)
+			return Result{}, &NotInConfigError{Name: cfg.DefaultProfile, Source: "default_profile in config.json"}
 		}
 		return Result{Profile: cfg.DefaultProfile, Rule: RuleDefaultProfile}, nil
 	}

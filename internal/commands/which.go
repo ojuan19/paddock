@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -8,6 +9,7 @@ import (
 
 	"github.com/ojuan19/paddock/internal/config"
 	"github.com/ojuan19/paddock/internal/resolver"
+	"github.com/ojuan19/paddock/internal/ui"
 )
 
 func NewWhichCmd() *cobra.Command {
@@ -39,26 +41,45 @@ func runWhich(cmd *cobra.Command, quiet bool) error {
 	}
 
 	result, err := resolver.Resolve(pwd, cfg, links)
+
+	// --quiet bypasses ALL UI styling. Hot path for the cd-hook in Round 6.
+	if quiet {
+		if err != nil {
+			return err
+		}
+		if result.Rule == resolver.RuleNone {
+			return nil
+		}
+		fmt.Fprintln(cmd.OutOrStdout(), result.Profile)
+		return nil
+	}
+
 	if err != nil {
+		var nice *resolver.NotInConfigError
+		if errors.As(err, &nice) {
+			msg := ui.Error(nice.Error())
+			if s := ui.SuggestProfile(nice.Name, profileNames(cfg)); s != "" {
+				msg += "\n" + s
+			}
+			return errors.New(msg)
+		}
 		return err
 	}
 
 	out := cmd.OutOrStdout()
-	if quiet {
-		if result.Rule == resolver.RuleNone {
-			return nil
-		}
-		fmt.Fprintln(out, result.Profile)
-		return nil
-	}
-
 	if result.Rule == resolver.RuleNone {
-		fmt.Fprintln(out, "No profile applies here.")
+		fmt.Fprintln(out, ui.Muted("No profile applies here."))
 		return nil
 	}
 
-	fmt.Fprintf(out, "Profile: %s\n", result.Profile)
-	fmt.Fprintf(out, "Source:  %s\n", sourceLabel(result))
+	p := cfg.Profiles[result.Profile]
+	dot := ui.ProfileDot(p.Color)
+	dotSp := ""
+	if dot != "" {
+		dotSp = dot + " "
+	}
+	fmt.Fprintln(out, dotSp+ui.ProfileName(p.Color, result.Profile))
+	fmt.Fprintln(out, "  "+ui.Muted("source: "+sourceLabel(result)))
 	return nil
 }
 

@@ -11,6 +11,7 @@ import (
 	"github.com/ojuan19/paddock/internal/config"
 	"github.com/ojuan19/paddock/internal/profile"
 	"github.com/ojuan19/paddock/internal/resolver"
+	"github.com/ojuan19/paddock/internal/ui"
 )
 
 func NewRunCmd() *cobra.Command {
@@ -28,7 +29,9 @@ func NewRunCmd() *cobra.Command {
 func runRun(args []string) error {
 	claudePath, err := exec.LookPath("claude")
 	if err != nil {
-		return fmt.Errorf("claude not found in PATH. Install Claude Code: https://claude.com/download")
+		msg := ui.Error("claude not found in PATH") +
+			"\n" + ui.Muted("  Install Claude Code: https://claude.com/download")
+		return errors.New(msg)
 	}
 
 	pwd, err := os.Getwd()
@@ -48,6 +51,14 @@ func runRun(args []string) error {
 
 	result, err := resolver.Resolve(pwd, cfg, links)
 	if err != nil {
+		var nice *resolver.NotInConfigError
+		if errors.As(err, &nice) {
+			msg := ui.Error(nice.Error())
+			if s := ui.SuggestProfile(nice.Name, profileNames(cfg)); s != "" {
+				msg += "\n" + s
+			}
+			return errors.New(msg)
+		}
 		return err
 	}
 

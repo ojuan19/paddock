@@ -1,14 +1,17 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/ojuan19/paddock/internal/config"
 	"github.com/ojuan19/paddock/internal/profile"
+	"github.com/ojuan19/paddock/internal/ui"
 )
 
 func NewAddCmd() *cobra.Command {
@@ -31,13 +34,15 @@ func NewAddCmd() *cobra.Command {
 			}
 
 			if _, ok := c.Profiles[name]; ok {
-				return fmt.Errorf("%w: %q", config.ErrProfileExists, name)
+				return errors.New(ui.Error(fmt.Sprintf("Profile %q already exists", name)))
 			}
 
 			var color string
 			if colorFlag != "" {
 				if !slices.Contains(config.AllowedColors, colorFlag) {
-					return fmt.Errorf("invalid color %q (allowed: %v)", colorFlag, config.AllowedColors)
+					msg := ui.Error(fmt.Sprintf("Invalid color %q", colorFlag)) +
+						"\n" + ui.Muted("  Allowed: "+strings.Join(config.AllowedColors, ", "))
+					return errors.New(msg)
 				}
 				color = colorFlag
 			} else {
@@ -53,7 +58,8 @@ func NewAddCmd() *cobra.Command {
 				CreatedAt: time.Now().UTC(),
 			}
 
-			if defaultFlag || len(c.Profiles) == 1 {
+			isDefault := defaultFlag || len(c.Profiles) == 1
+			if isDefault {
 				c.DefaultProfile = name
 			}
 
@@ -61,7 +67,13 @@ func NewAddCmd() *cobra.Command {
 				return fmt.Errorf("saving config: %w", err)
 			}
 
-			fmt.Fprintf(cmd.OutOrStdout(), "Created profile '%s' (%s)\n", name, color)
+			suffix := color
+			if isDefault {
+				suffix = color + ", default"
+			}
+			line := ui.Success("Created profile ") + ui.ProfileDot(color) + " " + ui.ProfileName(color, name) +
+				"  " + ui.Muted("("+suffix+")")
+			fmt.Fprintln(cmd.OutOrStdout(), line)
 			return nil
 		},
 	}

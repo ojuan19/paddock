@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/ojuan19/paddock/internal/config"
+	"github.com/ojuan19/paddock/internal/ui"
 )
 
 func NewLinkCmd() *cobra.Command {
@@ -62,7 +62,11 @@ func canonicalPwd() (string, error) {
 
 func runLink(cmd *cobra.Command, cfg *config.Config, name string) error {
 	if _, ok := cfg.Profiles[name]; !ok {
-		return fmt.Errorf("%w: %q", config.ErrProfileNotFound, name)
+		msg := ui.Error(fmt.Sprintf("No profile named %q", name))
+		if s := ui.SuggestProfile(name, profileNames(cfg)); s != "" {
+			msg += "\n" + s
+		}
+		return errors.New(msg)
 	}
 	pwd, err := canonicalPwd()
 	if err != nil {
@@ -76,6 +80,12 @@ func runLink(cmd *cobra.Command, cfg *config.Config, name string) error {
 		links.Links = map[string]string{}
 	}
 	out := cmd.OutOrStdout()
+	p := cfg.Profiles[name]
+	dot := ui.ProfileDot(p.Color)
+	dotSp := ""
+	if dot != "" {
+		dotSp = dot + " "
+	}
 	existing, has := links.Links[pwd]
 	switch {
 	case !has:
@@ -83,15 +93,25 @@ func runLink(cmd *cobra.Command, cfg *config.Config, name string) error {
 		if err := links.Save(); err != nil {
 			return fmt.Errorf("saving links: %w", err)
 		}
-		fmt.Fprintf(out, "Linked %s → %s\n", pwd, name)
+		fmt.Fprintln(out, ui.Success("Linked ")+dotSp+ui.ProfileName(p.Color, name))
+		fmt.Fprintln(out, "  "+ui.Path(pwd))
 	case existing == name:
-		fmt.Fprintf(out, "Already linked: %s → %s\n", pwd, name)
+		fmt.Fprintln(out, "Already linked: "+dotSp+ui.ProfileName(p.Color, name))
+		fmt.Fprintln(out, "  "+ui.Path(pwd))
 	default:
+		oldP := cfg.Profiles[existing]
+		oldDot := ui.ProfileDot(oldP.Color)
+		oldDotSp := ""
+		if oldDot != "" {
+			oldDotSp = oldDot + " "
+		}
 		links.Links[pwd] = name
 		if err := links.Save(); err != nil {
 			return fmt.Errorf("saving links: %w", err)
 		}
-		fmt.Fprintf(out, "Re-linked %s: %s → %s\n", pwd, existing, name)
+		fmt.Fprintln(out, ui.Success("Re-linked ")+dotSp+ui.ProfileName(p.Color, name))
+		fmt.Fprintln(out, "  was: "+oldDotSp+ui.ProfileName(oldP.Color, existing))
+		fmt.Fprintln(out, "  "+ui.Path(pwd))
 	}
 	return nil
 }
@@ -103,19 +123,23 @@ func pickProfile(cmd *cobra.Command, cfg *config.Config) (string, error) {
 		return "", err
 	}
 	if (fi.Mode() & os.ModeCharDevice) == 0 {
-		return "", errors.New("interactive picker requires a TTY; pass a profile name explicitly: paddock link <name>")
+		msg := ui.Error("Interactive picker requires a TTY") +
+			"\n" + ui.Muted("  Pass a profile name: paddock link <name>")
+		return "", errors.New(msg)
 	}
-	names := make([]string, 0, len(cfg.Profiles))
-	for n := range cfg.Profiles {
-		names = append(names, n)
-	}
-	sort.Strings(names)
+	names := profileNames(cfg)
 	out := cmd.OutOrStdout()
 	for i, n := range names {
+		p := cfg.Profiles[n]
+		dot := ui.ProfileDot(p.Color)
+		dotSp := ""
+		if dot != "" {
+			dotSp = dot + " "
+		}
 		if n == cfg.DefaultProfile {
-			fmt.Fprintf(out, "%d) %s [default]\n", i+1, n)
+			fmt.Fprintf(out, "%d) %s%s %s\n", i+1, dotSp, ui.ProfileName(p.Color, n), ui.Muted("[default]"))
 		} else {
-			fmt.Fprintf(out, "%d) %s\n", i+1, n)
+			fmt.Fprintf(out, "%d) %s%s\n", i+1, dotSp, ui.ProfileName(p.Color, n))
 		}
 	}
 	fmt.Fprintf(out, "Pick a profile (1-%d, q to abort): ", len(names))
