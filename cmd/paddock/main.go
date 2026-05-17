@@ -24,6 +24,7 @@ func newRootCmd() *cobra.Command {
 		commands.NewLinkCmd(),
 		commands.NewUnlinkCmd(),
 		commands.NewStatuslineCmd(),
+		commands.NewShellInitCmd(),
 	)
 	return root
 }
