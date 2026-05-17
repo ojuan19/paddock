@@ -90,6 +90,20 @@ func runInit(cmd *cobra.Command, assumeYes bool, name string) error {
 		return fmt.Errorf("importing ~/.claude: %w", err)
 	}
 
+	// Copy ~/.claude.json (lives at home root, not inside ~/.claude/)
+	claudeJSONSrc := filepath.Join(home, ".claude.json")
+	if info, err := os.Lstat(claudeJSONSrc); err == nil && info.Mode().IsRegular() {
+		data, readErr := os.ReadFile(claudeJSONSrc)
+		if readErr == nil {
+			dstPath := filepath.Join(mustProfileDir(name), ".claude.json")
+			if writeErr := config.WriteFileAtomic(dstPath, data); writeErr == nil {
+				// Match the 0o600 perm of the source intent — auth token inside.
+				_ = os.Chmod(dstPath, 0o600)
+				sum.Files[".claude.json"]++
+			}
+		}
+	}
+
 	color := cfg.AutoAssignColor()
 	cfg.Profiles[name] = config.Profile{Color: color, CreatedAt: time.Now().UTC()}
 	cfg.DefaultProfile = name
@@ -108,8 +122,8 @@ func runInit(cmd *cobra.Command, assumeYes bool, name string) error {
 		}
 	}
 
-	fmt.Fprintf(out, "%s Imported as %s %s  %s\n",
-		ui.Success("Created profile"),
+	fmt.Fprintf(out, "%s %s %s  %s\n",
+		ui.Success("Imported as"),
 		ui.ProfileDot(color),
 		ui.ProfileName(color, name),
 		ui.Muted("(color: "+color+", default)"),

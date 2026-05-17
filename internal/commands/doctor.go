@@ -424,7 +424,7 @@ func profileLoginCheck(name string, p config.Profile) checkResult {
 			section: "Profiles",
 			status:  statusWarn,
 			line:    ui.Warn(profileLabel(p.Color, name) + " — not logged in (.claude.json missing)"),
-			hint:    "Run `paddock run " + name + " -- /login` to authenticate.",
+			hint:    "Run `paddock use " + name + " /login` to authenticate.",
 		}
 	}
 	return checkResult{section: "Profiles", status: statusOK, line: ui.Success(profileLabel(p.Color, name) + " — logged in")}

@@ -4,12 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 
 	"github.com/spf13/cobra"
 
 	"github.com/ojuan19/paddock/internal/config"
-	"github.com/ojuan19/paddock/internal/profile"
 	"github.com/ojuan19/paddock/internal/resolver"
 	"github.com/ojuan19/paddock/internal/ui"
 )
@@ -27,13 +25,6 @@ func NewRunCmd() *cobra.Command {
 }
 
 func runRun(args []string) error {
-	claudePath, err := exec.LookPath("claude")
-	if err != nil {
-		msg := ui.Error("claude not found in PATH") +
-			"\n" + ui.Muted("  Install Claude Code: https://claude.com/download")
-		return errors.New(msg)
-	}
-
 	pwd, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("getting working directory: %w", err)
@@ -62,33 +53,8 @@ func runRun(args []string) error {
 		return err
 	}
 
-	cmd := exec.Command(claudePath, args...)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	env := os.Environ()
-
-	if result.Rule != resolver.RuleNone {
-		profileDir, err := profile.Dir(result.Profile)
-		if err != nil {
-			return fmt.Errorf("resolving profile dir: %w", err)
-		}
-		env = append(env, "CLAUDE_CONFIG_DIR="+profileDir)
-		// Persist last-used BEFORE spawning so we still record activation even if the child
-		// crashes or the user kills it; spawn failure leaves a harmless stale timestamp.
-		cfg.TouchLastUsed(result.Profile)
-		if err := cfg.Save(); err != nil {
-			return fmt.Errorf("saving config: %w", err)
-		}
+	if result.Rule == resolver.RuleNone {
+		return spawnClaude(cfg, "", args)
 	}
-	cmd.Env = env
-
-	if err := cmd.Run(); err != nil {
-		var ee *exec.ExitError
-		if errors.As(err, &ee) {
-			os.Exit(ee.ExitCode())
-		}
-		return fmt.Errorf("running claude: %w", err)
-	}
-	return nil
+	return spawnClaude(cfg, result.Profile, args)
 }
