@@ -1,10 +1,13 @@
 {
   "name": "paddockcli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Multi-Claude Code account manager. Auto-switch per directory.",
   "bin": { "paddock": "bin/paddock" },
-  "scripts": { "postinstall": "node postinstall.js" },
-  "files": ["bin/", "postinstall.js", "README.md"],
+  "scripts": {
+    "prepack": "node prepack.js",
+    "postinstall": "node postinstall.js"
+  },
+  "files": ["bin/", "prepack.js", "postinstall.js", "README.md"],
   "preferGlobal": true,
   "os": ["darwin", "linux"],
   "cpu": ["x64", "arm64"],

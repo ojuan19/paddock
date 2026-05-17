@@ -2,31 +2,39 @@
 // Zero npm deps — uses node stdlib + the host's `tar` for extraction.
 // Archive naming MUST match .goreleaser.yaml's name_template:
 //   paddock_{OS}_{ARCH}.tar.gz   where OS is Darwin|Linux (capitalized) and ARCH is amd64|arm64
+//
+// BINARY_VERSION is the Go release tag to download, NOT this npm package's version.
+// Decoupled so we can ship npm-wrapper-only patches without cutting a new Go release.
+// Bump this when shipping a new Go binary.
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const { execSync } = require('child_process');
 
-const VERSION = process.env.npm_package_version;
+const BINARY_VERSION = '0.1.0';
 const REPO = 'ojuan19/paddock';
 
 const OS_MAP = { darwin: 'Darwin', linux: 'Linux' };
 const ARCH_MAP = { x64: 'amd64', arm64: 'arm64' };
 
-const OS = OS_MAP[process.platform];
+const OS_NAME = OS_MAP[process.platform];
 const ARCH = ARCH_MAP[process.arch];
 
-if (!OS || !ARCH) {
+if (!OS_NAME || !ARCH) {
   console.error(`paddockcli: unsupported platform ${process.platform}/${process.arch}`);
-  process.exit(1);
+  process.exit(0);
 }
 
-const ASSET = `paddock_${OS}_${ARCH}.tar.gz`;
-const URL = `https://github.com/${REPO}/releases/download/v${VERSION}/${ASSET}`;
+const ASSET = `paddock_${OS_NAME}_${ARCH}.tar.gz`;
+const URL = `https://github.com/${REPO}/releases/download/v${BINARY_VERSION}/${ASSET}`;
 const BIN_DIR = path.join(__dirname, 'bin');
-const TGZ_PATH = path.join(BIN_DIR, ASSET);
+const FINAL_BIN = path.join(BIN_DIR, 'paddock');
 
 fs.mkdirSync(BIN_DIR, { recursive: true });
+
+// Extract into a sibling temp dir on the same filesystem so the final rename is atomic.
+const TMP_DIR = fs.mkdtempSync(path.join(BIN_DIR, '.tmp-'));
+const TGZ_PATH = path.join(TMP_DIR, ASSET);
 
 function download(url, dest, redirectsLeft = 5) {
   return new Promise((resolve, reject) => {
@@ -48,12 +56,19 @@ function download(url, dest, redirectsLeft = 5) {
   try {
     console.log(`paddockcli: downloading ${ASSET} from ${URL}`);
     await download(URL, TGZ_PATH);
-    execSync(`tar -xzf "${TGZ_PATH}" -C "${BIN_DIR}"`);
-    fs.unlinkSync(TGZ_PATH);
-    fs.chmodSync(path.join(BIN_DIR, 'paddock'), 0o755);
-    console.log(`paddockcli: installed paddock v${VERSION}`);
+    execSync(`tar -xzf "${TGZ_PATH}" -C "${TMP_DIR}"`);
+    const extractedBin = path.join(TMP_DIR, 'paddock');
+    fs.chmodSync(extractedBin, 0o755);
+    // Atomic swap: rename over the placeholder. The bin symlink keeps resolving.
+    fs.renameSync(extractedBin, FINAL_BIN);
+    fs.rmSync(TMP_DIR, { recursive: true, force: true });
+    console.log(`paddockcli: installed paddock v${BINARY_VERSION}`);
   } catch (err) {
+    fs.rmSync(TMP_DIR, { recursive: true, force: true });
     console.error(`paddockcli: install failed — ${err.message}`);
-    process.exit(1);
+    console.error(`paddockcli: the 'paddock' command will print an install-failure message until you reinstall.`);
+    // Exit 0: the placeholder remains and self-reports on invocation. Avoids
+    // breaking parent automation (CI, monorepo bootstraps) for a recoverable failure.
+    process.exit(0);
   }
 })();
