@@ -46,6 +46,7 @@ func (e *NotInConfigError) Is(target error) bool {
 }
 
 func Resolve(pwd string, cfg *config.Config, links *config.Links) (Result, error) {
+	pwd = filepath.Clean(pwd)
 	// Rule 1: $PADDOCK_PROFILE
 	if val, ok := os.LookupEnv("PADDOCK_PROFILE"); ok && val != "" {
 		if _, exists := cfg.Profiles[val]; !exists {
