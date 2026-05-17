@@ -17,6 +17,7 @@ func newRootCmd() *cobra.Command {
 		Version: version,
 	}
 	root.AddCommand(
+		commands.NewInitCmd(),
 		commands.NewAddCmd(),
 		commands.NewListCmd(),
 		commands.NewRunCmd(),
@@ -25,6 +26,7 @@ func newRootCmd() *cobra.Command {
 		commands.NewUnlinkCmd(),
 		commands.NewStatuslineCmd(),
 		commands.NewShellInitCmd(),
+		commands.NewDoctorCmd(),
 	)
 	return root
 }
