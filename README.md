@@ -3,97 +3,120 @@
 > Multi-Claude control plane. Auto-switch Claude Code accounts per directory.
 > Color-coded statusline so you never wonder which Claude is talking to you.
 
-```
-$ paddock ls
-● personal     12 projects
-● work         3 projects   ← in clientX subtree
-● acme         1 project
-
-$ cd ~/work/clientX
-[work] Claude switched.
-```
-
----
-
-## 🚧 Status: alpha — building in public
-
-Active development. **Not ready to install yet** — release infra ships at the end of v0.1.
-
-If you use Claude Code with more than one account today, the canonical workaround is `direnv` + `.envrc` files pointing `CLAUDE_CONFIG_DIR` per directory. Paddock is that workflow specialized: one CLI, auto-discovery, a statusline you can see inside Claude, and (coming soon) cost tracking per profile.
-
-### What works today
+## Quickstart
 
 ```bash
-paddock add work --color amber
-paddock add personal --color blue --default
-paddock list
+brew install ojuan19/tap/paddock                # coming v0.1.0 — this week
+paddock init                                    # adopt your existing ~/.claude/ as 'personal'
+paddock add work --color amber                  # blank profile; you'll log in on first use
+cd ~/work && paddock link work                  # bind this directory to the work profile
+eval "$(paddock shell-init zsh)" >> ~/.zshrc    # one-time: enable auto-switch on cd
 ```
 
-Config stored atomically in `~/.paddock/config.json`. That's it for now — no switching yet. The interesting part lands in the next few commits.
+Now `cd ~/work && claude` uses your work account; `cd` anywhere else falls back to personal. The statusline at the bottom of Claude tells you which is active.
 
-### Roadmap
+## Status
 
-- ✅ **v0.0 (now)** — Scaffolding: `add`, `list`, config storage
-- 🚧 **v0.1 (this weekend)** — Auto-switch + release infra
-  - `paddock run` / `paddock which` / `paddock link` / `paddock unlink`
-  - `paddock shell-init` (bash/zsh/fish auto-switch on `cd`)
-  - Color-coded statusline inside Claude Code
-  - `paddock doctor` (diagnostics for issue reports)
-  - Homebrew tap + npm wrapper + `curl | bash` installer
-- 🔮 **v0.2 (week after)** — The killer features
-  - `paddock costs` — per-profile cost breakdown (token data is already in `stats-cache.json`)
-  - `paddock sync-mcp` — copy MCP servers between profiles
-  - `paddock snapshot create/restore` — backup config before risky changes
-- 🔮 **v0.3+** — TUI, team profiles (shared config via git)
+Building toward **v0.1.0** — install via build from source today; Homebrew tap + npm wrapper land with v0.1.0 this week.
 
----
+**Works today (10 commands)**:
+- `paddock init` — first-run setup; imports `~/.claude/` as a profile
+- `paddock add <name> [--color X] [--default] [--from <dir>]` — create profile (optionally import existing CLAUDE_CONFIG_DIR)
+- `paddock list` (`ls`, `--links`) — list profiles
+- `paddock link [<name>]` / `paddock unlink` — bind/unbind current dir
+- `paddock use <name> [args...]` — launch claude with a specific profile
+- `paddock run [args...]` — launch claude with the profile resolved from cwd
+- `paddock which [--quiet]` — show which profile applies and why
+- `paddock shell-init [bash|zsh|fish|powershell]` — print shell hook script
+- `paddock doctor [--fix]` — diagnose installation; auto-repair safe issues
+
+**Other capabilities**:
+- Auto-switch on `cd` via shell hook (bash, zsh, fish; powershell experimental)
+- Color-coded statusline inside Claude Code per profile
+- Allowlist-based import (no caches, history, or session state carried over)
+- Fuzzy "did you mean" suggestions on profile typos
+- `NO_COLOR` / `FORCE_COLOR` env vars respected
 
 ## How it works
 
-Claude Code respects the `CLAUDE_CONFIG_DIR` environment variable. Pointing it at a different directory gives complete isolation — credentials, settings, history, plugins, MCPs all switch. On macOS, Keychain entries are scoped by the config dir's path hash, so credentials stay separate per profile.
+Claude Code respects the `CLAUDE_CONFIG_DIR` environment variable. Pointing it at a different directory gives complete isolation — credentials, settings, history, plugins, MCPs all switch. On macOS, Keychain entries are scoped by the config dir's path, so credentials stay separate per profile.
 
 Paddock orchestrates this:
-1. You create profiles (`paddock add <name>`)
-2. You link directories to profiles (`paddock link <name>` — coming v0.1)
+1. You create profiles (`paddock add <name>` or `paddock init`)
+2. You link directories to profiles (`paddock link <name>`)
 3. A shell hook (`paddock shell-init`) sets `CLAUDE_CONFIG_DIR` whenever you `cd`
 4. A statusline command (`paddock statusline`) shows the active profile *inside* Claude Code
 
-Paddock does **not** modify Claude Code, does **not** touch `~/.claude/`, and does **not** handle API keys (subscriptions only). Uninstall paddock and Claude Code works exactly as before.
-
-## Prior art
-
-- [direnv](https://direnv.net/) — the conceptual ancestor. Paddock is direnv specialized for Claude Code with a visible statusline and one-command UX. If you're already happy with direnv + `.envrc`, you don't need paddock yet — but you might want it when `costs` and `sync-mcp` ship in v0.2.
-- [`claude-profile`](https://github.com/yu-iskw/claude-profile) — similar idea, no auto-switch, no statusline.
+Paddock does **not** modify Claude Code, does **not** touch `~/.claude/` (except read-only on `init`), and does **not** handle API keys (subscriptions only). Uninstall paddock and Claude Code works exactly as before.
 
 ## Install
 
-Not yet. When v0.1 ships:
-
-```bash
-# npm (any platform with Node)
-npm install -g paddockcli
-
-# Homebrew (macOS / Linux)
-brew install ojuan19/tap/paddock
-
-# Or just download a binary
-curl -fsSL https://raw.githubusercontent.com/ojuan19/paddock/main/install.sh | bash
-```
-
-## Building from source
+### Build from source (today)
 
 ```bash
 git clone https://github.com/ojuan19/paddock.git
 cd paddock
 go build -o paddock ./cmd/paddock
-./paddock --version
+sudo cp paddock /usr/local/bin/
+paddock --version
 ```
 
 Requires Go 1.21+.
 
+### Homebrew / npm (coming v0.1.0)
+
+```bash
+brew install ojuan19/tap/paddock
+# or
+npm install -g paddockcli
+# or
+curl -fsSL https://raw.githubusercontent.com/ojuan19/paddock/main/install.sh | bash
+```
+
+### Shell setup
+
+After install, enable auto-switching:
+
+```bash
+# zsh
+eval "$(paddock shell-init zsh)" >> ~/.zshrc
+
+# bash
+eval "$(paddock shell-init bash)" >> ~/.bashrc
+
+# fish
+paddock shell-init fish | source
+```
+
+## Migration from direnv or manual `CLAUDE_CONFIG_DIR` setups
+
+Already DIY'd a second Claude account using direnv + `.envrc`? One command:
+
+```bash
+paddock init                                                  # imports ~/.claude/ → 'personal'
+paddock add work --color amber --from ~/.claude-work          # imports your second setup → 'work'
+cd ~/work-dir && paddock link work
+rm ~/work-dir/.envrc                                          # only if direnv was managing the switch
+```
+
+`--from` runs the same allowlist-based copy as `init` (skips caches, history, session state).
+
+## Roadmap
+
+- **Rounds 0–7.5** (done) — All 10 commands, auto-switch, statusline, doctor, fuzzy match, `--from` import
+- **Round 8** — tests (resolver + config; shell tests already exist)
+- **Round 9** — release infra (GoReleaser, Homebrew tap, npm wrapper, `curl | bash`)
+- **v0.2** — `paddock costs` (per-profile spend), `paddock sync-mcp` (copy MCPs between profiles), `paddock snapshot create/restore`
+- **v0.3+** — TUI, team profiles (shared config via git)
+
+## Prior art
+
+- [direnv](https://direnv.net/) — the conceptual ancestor. Paddock is direnv specialized for Claude Code with a visible statusline and one-command UX. If you're already happy with direnv + `.envrc`, paddock's `v0.1` doesn't unlock much — but `v0.2` will, with cost tracking and MCP syncing direnv literally cannot do.
+- [`claude-profile`](https://github.com/yu-iskw/claude-profile) — similar idea, no auto-switch, no statusline.
+
 ## Contributing
 
-Project is alpha and I'm working through a tight build plan in rounds (a few commits per round, then break). Issues and PRs welcome after v0.1 ships. Until then, star ⭐ the repo to follow along.
+Project is alpha; opening it up for issues + PRs after v0.1 ships. Star the repo to follow along.
 
 ## License
 

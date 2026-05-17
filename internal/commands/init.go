@@ -113,7 +113,7 @@ func runInit(cmd *cobra.Command, assumeYes bool, name string) error {
 
 	srcSettingsPath := filepath.Join(claudeHome, "settings.json")
 	profileSettingsPath := filepath.Join(mustProfileDir(name), "settings.json")
-	if hasExistingStatusLine(profileSettingsPath) || hasExistingStatusLine(srcSettingsPath) {
+	if profile.HasExistingStatusLine(profileSettingsPath) || profile.HasExistingStatusLine(srcSettingsPath) {
 		fmt.Fprintln(out, ui.Warn("Existing statusLine in settings.json preserved."))
 		fmt.Fprintln(out, ui.Muted("  Paddock's colored statusline is disabled for this profile."))
 	} else {
@@ -165,13 +165,4 @@ func printShellInitHint(out io.Writer) {
 func mustProfileDir(name string) string {
 	p, _ := profile.Dir(name)
 	return p
-}
-
-// hasExistingStatusLine returns true if path is a file whose JSON contains a top-level "statusLine" key.
-func hasExistingStatusLine(path string) bool {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return false
-	}
-	return strings.Contains(string(data), `"statusLine"`)
 }
