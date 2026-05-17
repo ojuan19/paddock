@@ -1,0 +1,58 @@
+version: 2
+project_name: paddock
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: paddock
+    main: ./cmd/paddock
+    binary: paddock
+    env: [CGO_ENABLED=0]
+    goos: [darwin, linux]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+    mod_timestamp: '{{ .CommitTimestamp }}'
+
+archives:
+  - id: default
+    formats: [tar.gz]
+    name_template: "paddock_{{ .Os | title }}_{{ .Arch }}"
+    files: [LICENSE, README.md]
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - 'Merge pull request'
+
+brews:
+  - name: paddock
+    repository:
+      owner: ojuan19
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    commit_author:
+      name: Juanships LLC
+      email: ojuan19@users.noreply.github.com
+    commit_msg_template: "paddock: bump to {{ .Tag }}"
+    homepage: "https://github.com/ojuan19/paddock"
+    description: "Multi-Claude Code account manager. Auto-switch per directory."
+    license: MIT
+    test: |
+      system "#{bin}/paddock", "--version"
+    install: |
+      bin.install "paddock"

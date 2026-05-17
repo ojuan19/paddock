@@ -8,7 +8,7 @@ import (
 	"github.com/ojuan19/paddock/internal/commands"
 )
 
-const version = "0.0.1-dev"
+var version = "dev"
 
 func newRootCmd() *cobra.Command {
 	root := &cobra.Command{

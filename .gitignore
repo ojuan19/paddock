@@ -7,6 +7,14 @@ paddock-*
 *.out
 coverage.txt
 
+# GoReleaser
+/dist/
+
+# npm wrapper artifacts (binary downloaded at install time)
+/npm/bin/
+/npm/node_modules/
+/npm/*.tgz
+
 # OS
 .DS_Store
 

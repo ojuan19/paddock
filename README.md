@@ -6,7 +6,8 @@
 ## Quickstart
 
 ```bash
-brew install ojuan19/tap/paddock                # coming v0.1.0 — this week
+npm install -g paddockcli                       # any platform with Node
+# or:  brew install ojuan19/tap/paddock         # macOS / Linux Homebrew
 paddock init                                    # adopt your existing ~/.claude/ as 'personal'
 paddock add work --color amber                  # blank profile; you'll log in on first use
 cd ~/work && paddock link work                  # bind this directory to the work profile
@@ -51,7 +52,18 @@ Paddock does **not** modify Claude Code, does **not** touch `~/.claude/` (except
 
 ## Install
 
-### Build from source (today)
+```bash
+# npm (recommended for JS/TS devs)
+npm install -g paddockcli
+
+# Homebrew
+brew install ojuan19/tap/paddock
+
+# curl | bash (Linux/macOS)
+curl -fsSL https://raw.githubusercontent.com/ojuan19/paddock/main/install.sh | bash
+```
+
+### Build from source (contributors)
 
 ```bash
 git clone https://github.com/ojuan19/paddock.git
@@ -62,16 +74,6 @@ paddock --version
 ```
 
 Requires Go 1.21+.
-
-### Homebrew / npm (coming v0.1.0)
-
-```bash
-brew install ojuan19/tap/paddock
-# or
-npm install -g paddockcli
-# or
-curl -fsSL https://raw.githubusercontent.com/ojuan19/paddock/main/install.sh | bash
-```
 
 ### Shell setup
 
@@ -101,11 +103,13 @@ rm ~/work-dir/.envrc                                          # only if direnv w
 
 `--from` runs the same allowlist-based copy as `init` (skips caches, history, session state).
 
+> Note: blank profiles created with `paddock add` (no `--from`) require `/login` on first use — Claude Code's auth lives in macOS Keychain keyed by config-dir path, so each new profile path starts unauthenticated.
+
 ## Roadmap
 
 - **Rounds 0–7.5** (done) — All 10 commands, auto-switch, statusline, doctor, fuzzy match, `--from` import
-- **Round 8** — tests (resolver + config; shell tests already exist)
-- **Round 9** — release infra (GoReleaser, Homebrew tap, npm wrapper, `curl | bash`)
+- **Round 8** ✅ — tests (resolver + config; shell tests already exist)
+- **Round 9** ✅ — release infra (GoReleaser, Homebrew tap, npm wrapper, `curl | bash`)
 - **v0.2** — `paddock costs` (per-profile spend), `paddock sync-mcp` (copy MCPs between profiles), `paddock snapshot create/restore`
 - **v0.3+** — TUI, team profiles (shared config via git)
 

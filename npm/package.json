@@ -1,0 +1,16 @@
+{
+  "name": "paddockcli",
+  "version": "0.1.0",
+  "description": "Multi-Claude Code account manager. Auto-switch per directory.",
+  "bin": { "paddock": "bin/paddock" },
+  "scripts": { "postinstall": "node postinstall.js" },
+  "files": ["bin/", "postinstall.js", "README.md"],
+  "preferGlobal": true,
+  "os": ["darwin", "linux"],
+  "cpu": ["x64", "arm64"],
+  "engines": { "node": ">=14" },
+  "homepage": "https://github.com/ojuan19/paddock",
+  "repository": { "type": "git", "url": "git+https://github.com/ojuan19/paddock.git" },
+  "license": "MIT",
+  "keywords": ["claude", "claude-code", "cli", "anthropic"]
+}

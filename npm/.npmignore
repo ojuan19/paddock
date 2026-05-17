@@ -1,0 +1,4 @@
+node_modules/
+bin/paddock
+*.tgz
+.DS_Store
