@@ -67,6 +67,10 @@ func NewAddCmd() *cobra.Command {
 				return fmt.Errorf("saving config: %w", err)
 			}
 
+			if err := profile.WriteStatuslineSettings(name, color); err != nil {
+				return fmt.Errorf("writing statusline settings: %w", err)
+			}
+
 			suffix := color
 			if isDefault {
 				suffix = color + ", default"

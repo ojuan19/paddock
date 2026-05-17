@@ -52,6 +52,14 @@ func detectColor() bool {
 
 func ColorEnabled() bool { return colorEnabled }
 
+// ForceColor enables colored output for the rest of this process, overriding
+// TTY detection and NO_COLOR. Used by `paddock statusline` because its stdout
+// is always a pipe (Claude Code reads it) but Claude Code does render ANSI.
+func ForceColor() {
+	colorEnabled = true
+	lipgloss.SetColorProfile(termenv.TrueColor)
+}
+
 func ResolveColor(name string) lipgloss.Color {
 	if c, ok := profileColors[name]; ok {
 		return c

@@ -18,8 +18,8 @@ func paddockDir() (string, error) {
 	return dir, nil
 }
 
-// writeFileAtomic writes to <path>.tmp then renames so readers never see a partial file.
-func writeFileAtomic(path string, data []byte) error {
+// WriteFileAtomic writes to <path>.tmp then renames so readers never see a partial file.
+func WriteFileAtomic(path string, data []byte) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return fmt.Errorf("creating parent dir: %w", err)
 	}

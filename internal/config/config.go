@@ -80,7 +80,7 @@ func (c *Config) Save() error {
 	if err != nil {
 		return err
 	}
-	if err := writeFileAtomic(path, data); err != nil {
+	if err := WriteFileAtomic(path, data); err != nil {
 		return fmt.Errorf("saving config: %w", err)
 	}
 	return nil

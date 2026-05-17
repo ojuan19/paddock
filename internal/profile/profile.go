@@ -1,6 +1,7 @@
 package profile
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -41,4 +42,30 @@ func Create(name string) (string, error) {
 		return "", fmt.Errorf("creating profile dir: %w", err)
 	}
 	return dir, nil
+}
+
+type statuslineSettings struct {
+	StatusLine struct {
+		Type    string `json:"type"`
+		Command string `json:"command"`
+		Padding int    `json:"padding"`
+	} `json:"statusLine"`
+}
+
+// WriteStatuslineSettings writes <profile-dir>/settings.json telling Claude Code
+// to invoke `paddock statusline` for its statusline bar. Idempotent — overwrites.
+func WriteStatuslineSettings(name, color string) error {
+	dir, err := Dir(name)
+	if err != nil {
+		return err
+	}
+	var s statuslineSettings
+	s.StatusLine.Type = "command"
+	s.StatusLine.Command = fmt.Sprintf("paddock statusline --profile %s --color %s", name, color)
+	s.StatusLine.Padding = 0
+	data, err := json.MarshalIndent(&s, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshaling statusline settings: %w", err)
+	}
+	return config.WriteFileAtomic(filepath.Join(dir, "settings.json"), data)
 }
