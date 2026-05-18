@@ -140,8 +140,9 @@ func applyFixes(cmd *cobra.Command, results []checkResult, assumeYes bool) int {
 		if r.status == statusOK {
 			continue
 		}
-		// Link-removal fixes prompt unless --yes.
-		if strings.HasPrefix(r.fixedLine, "removed") && !assumeYes {
+		// Fixes that label themselves (fixedLine != "") prompt unless --yes.
+		// Auto-apply fixes (settings.json regenerate etc) leave fixedLine empty.
+		if r.fixedLine != "" && !assumeYes {
 			fmt.Fprintf(out, "Apply fix for: %s [y/N] ", r.line)
 			ans := ""
 			if in.Scan() {
@@ -214,7 +215,7 @@ func shellHookCheck() checkResult {
 		return checkResult{section: "Environment", status: statusError, line: ui.Error("could not locate home dir")}
 	}
 	sh := filepath.Base(os.Getenv("SHELL"))
-	if sh == "" {
+	if sh == "" || sh == "." {
 		sh = "zsh"
 	}
 	var rc string
@@ -226,21 +227,28 @@ func shellHookCheck() checkResult {
 	default:
 		rc = filepath.Join(home, ".zshrc")
 	}
+	shName, rcPath := sh, rc
 	data, err := os.ReadFile(rc)
 	if err != nil {
 		return checkResult{
-			section: "Environment",
-			status:  statusWarn,
-			line:    ui.Warn("shell hook not installed (" + rcShort(rc) + ")"),
-			hint:    "Run: eval \"$(paddock shell-init " + sh + ")\" — then add to " + rcShort(rc),
+			section:   "Environment",
+			status:    statusWarn,
+			line:      ui.Warn("shell hook not installed (" + rcShort(rc) + ")"),
+			hint:      "Run: paddock shell-init " + sh + " >> " + rcShort(rc),
+			fixable:   true,
+			fix:       func() error { return shell.Install(shName, rcPath) },
+			fixedLine: "installed",
 		}
 	}
 	if !strings.Contains(string(data), shell.StartMarker) {
 		return checkResult{
-			section: "Environment",
-			status:  statusWarn,
-			line:    ui.Warn("shell hook not installed in " + rcShort(rc)),
-			hint:    `Add: eval "$(paddock shell-init ` + sh + `)"`,
+			section:   "Environment",
+			status:    statusWarn,
+			line:      ui.Warn("shell hook not installed in " + rcShort(rc)),
+			hint:      "Run: paddock shell-init " + sh + " >> " + rcShort(rc),
+			fixable:   true,
+			fix:       func() error { return shell.Install(shName, rcPath) },
+			fixedLine: "installed",
 		}
 	}
 	return checkResult{section: "Environment", status: statusOK, line: ui.Success("shell hook installed in " + rcShort(rc))}

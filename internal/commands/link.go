@@ -12,10 +12,18 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/ojuan19/paddock/internal/config"
+	"github.com/ojuan19/paddock/internal/shell"
 	"github.com/ojuan19/paddock/internal/ui"
 )
 
+// isStdinTTY is var-bound so tests can override it.
+var isStdinTTY = func() bool {
+	fi, err := os.Stdin.Stat()
+	return err == nil && (fi.Mode()&os.ModeCharDevice) != 0
+}
+
 func NewLinkCmd() *cobra.Command {
+	var assumeYes bool
 	cmd := &cobra.Command{
 		Use:   "link [name]",
 		Short: "Link the current directory to a profile",
@@ -41,9 +49,15 @@ func NewLinkCmd() *cobra.Command {
 					return nil
 				}
 			}
-			return runLink(cmd, cfg, name)
+			if err := runLink(cmd, cfg, name); err != nil {
+				return err
+			}
+			// Shell-hook install prompt — non-fatal on error.
+			maybePromptShellInstall(cmd, assumeYes)
+			return nil
 		},
 	}
+	cmd.Flags().BoolVar(&assumeYes, "yes", false, "Skip the shell-integration install prompt")
 	return cmd
 }
 
@@ -116,13 +130,77 @@ func runLink(cmd *cobra.Command, cfg *config.Config, name string) error {
 	return nil
 }
 
+// maybePromptShellInstall checks for a missing shell hook and offers to install it.
+// All branches are best-effort — link has already succeeded by the time we get here.
+func maybePromptShellInstall(cmd *cobra.Command, assumeYes bool) {
+	out := cmd.OutOrStdout()
+
+	name, rc, supported := shell.DetectShell()
+	if !supported {
+		return
+	}
+	installed, err := shell.IsInstalled(rc)
+	if err != nil || installed {
+		return
+	}
+
+	rcShort := rcShortPath(rc)
+
+	if !assumeYes && !isStdinTTY() {
+		return
+	}
+
+	accept := assumeYes
+	if !assumeYes {
+		fmt.Fprintf(out, "Shell auto-switch not installed. Add to %s? [Y/n] ", rcShort)
+		sc := bufio.NewScanner(cmd.InOrStdin())
+		if sc.Scan() {
+			ans := strings.ToLower(strings.TrimSpace(sc.Text()))
+			accept = ans == "" || ans == "y" || ans == "yes"
+		}
+	}
+
+	if !accept {
+		fmt.Fprintf(out, "Skipped. To install later: paddock shell-init %s >> %s\n", name, rcShort)
+		return
+	}
+
+	// Note the bash_profile state BEFORE we write, so we can emit the macOS hint accurately.
+	hadBashrcBefore := false
+	if name == "bash" {
+		if _, statErr := os.Stat(rc); statErr == nil {
+			hadBashrcBefore = true
+		}
+	}
+
+	if err := shell.Install(name, rc); err != nil {
+		fmt.Fprintln(out, ui.Warn("Failed to install shell hook: "+err.Error()))
+		fmt.Fprintf(out, "To install later: paddock shell-init %s >> %s\n", name, rcShort)
+		return
+	}
+	fmt.Fprintf(out, "Added paddock hook to %s. Run `source %s` or open a new shell to activate.\n", rcShort, rcShort)
+
+	if name == "bash" && !hadBashrcBefore {
+		home, err := os.UserHomeDir()
+		if err == nil {
+			if _, err := os.Stat(filepath.Join(home, ".bash_profile")); err == nil {
+				fmt.Fprintf(out, "Note: your shell may load ~/.bash_profile; ensure it sources %s.\n", rcShort)
+			}
+		}
+	}
+}
+
+func rcShortPath(p string) string {
+	home, err := os.UserHomeDir()
+	if err == nil && strings.HasPrefix(p, home) {
+		return "~" + strings.TrimPrefix(p, home)
+	}
+	return p
+}
+
 func pickProfile(cmd *cobra.Command, cfg *config.Config) (string, error) {
 	// TTY check: refuse interactive picker when stdin is piped/redirected.
-	fi, err := os.Stdin.Stat()
-	if err != nil {
-		return "", err
-	}
-	if (fi.Mode() & os.ModeCharDevice) == 0 {
+	if !isStdinTTY() {
 		msg := ui.Error("Interactive picker requires a TTY") +
 			"\n" + ui.Muted("  Pass a profile name: paddock link <name>")
 		return "", errors.New(msg)

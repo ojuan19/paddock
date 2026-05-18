@@ -17,6 +17,9 @@ import (
 	"github.com/ojuan19/paddock/internal/ui"
 )
 
+// Note: shell-hook install prompt lives in link.go, not here.
+// The hook isn't load-bearing until a directory is linked.
+
 func NewAddCmd() *cobra.Command {
 	var colorFlag string
 	var defaultFlag bool
