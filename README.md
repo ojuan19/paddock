@@ -6,30 +6,64 @@
 ## Quickstart
 
 ```bash
-npm install -g paddockcli                       # any platform with Node
-# or:  brew install ojuan19/tap/paddock         # macOS / Linux Homebrew
-paddock init                                    # adopt your existing ~/.claude/ as 'personal'
-paddock add work --color amber                  # blank profile; you'll log in on first use
-cd ~/work && paddock link work                  # bind this directory to the work profile
-eval "$(paddock shell-init zsh)" >> ~/.zshrc    # one-time: enable auto-switch on cd
+npm install -g paddockcli                # any platform with Node
+# or:  brew install ojuan19/tap/paddock  # macOS / Linux Homebrew
+paddock init                             # adopt your existing ~/.claude/ as 'personal'
+paddock add work --color amber           # blank profile; you'll log in on first use
+cd ~/work && paddock link work           # bind this dir; auto-installs shell hook on first link
 ```
 
 Now `cd ~/work && claude` uses your work account; `cd` anywhere else falls back to personal. The statusline at the bottom of Claude tells you which is active.
 
+## Examples
+
+### Set up two accounts
+
+```console
+$ paddock init
+Imported ~/.claude/ as profile 'personal' (blue, default)
+
+$ paddock add work --from ~/.claude-work --color amber
+Created profile 'work' (amber)
+Imported config from ~/.claude-work
+
+$ cd ~/work && paddock link work
+Linked work
+  /Users/you/work
+Shell auto-switch not installed. Add to ~/.zshrc? [Y/n] y
+Added paddock hook to ~/.zshrc. Run `source ~/.zshrc` or open a new shell to activate.
+```
+
+### Switch accounts by cd'ing
+
+```console
+$ cd ~/work
+$ paddock which
+work  (from /Users/you/work .paddock)
+
+$ claude       # uses the work account automatically; statusline shows [work]
+
+$ cd ~/personal-project
+$ paddock which
+personal  (default — no link)
+
+$ claude       # uses the personal account automatically; statusline shows [personal]
+```
+
 ## Status
 
-Building toward **v0.1.0** — install via build from source today; Homebrew tap + npm wrapper land with v0.1.0 this week.
+**Current**: v0.1.2 — available on npm, Homebrew, and curl install.
 
-**Works today (10 commands)**:
+**Commands**:
 - `paddock init` — first-run setup; imports `~/.claude/` as a profile
 - `paddock add <name> [--color X] [--default] [--from <dir>]` — create profile (optionally import existing CLAUDE_CONFIG_DIR)
 - `paddock list` (`ls`, `--links`) — list profiles
-- `paddock link [<name>]` / `paddock unlink` — bind/unbind current dir
+- `paddock link [<name>] [--yes]` — bind current dir (prompts to install shell hook on first link); `paddock unlink` to undo
 - `paddock use <name> [args...]` — launch claude with a specific profile
 - `paddock run [args...]` — launch claude with the profile resolved from cwd
 - `paddock which [--quiet]` — show which profile applies and why
 - `paddock shell-init [bash|zsh|fish|powershell]` — print shell hook script
-- `paddock doctor [--fix]` — diagnose installation; auto-repair safe issues
+- `paddock doctor [--fix] [--yes]` — diagnose installation; auto-repair safe issues
 
 **Other capabilities**:
 - Auto-switch on `cd` via shell hook (bash, zsh, fish; powershell experimental)
@@ -77,18 +111,20 @@ Requires Go 1.21+.
 
 ### Shell setup
 
-After install, enable auto-switching:
+`paddock link` auto-prompts to install the shell hook on first use, so you usually don't need to do this manually. If you want to install it yourself (or skipped the prompt):
 
 ```bash
 # zsh
-eval "$(paddock shell-init zsh)" >> ~/.zshrc
+paddock shell-init zsh >> ~/.zshrc
 
 # bash
-eval "$(paddock shell-init bash)" >> ~/.bashrc
+paddock shell-init bash >> ~/.bashrc
 
 # fish
-paddock shell-init fish | source
+paddock shell-init fish >> ~/.config/fish/config.fish
 ```
+
+Then `source` the file or open a new shell.
 
 ## Migration from direnv or manual `CLAUDE_CONFIG_DIR` setups
 
@@ -107,9 +143,8 @@ rm ~/work-dir/.envrc                                          # only if direnv w
 
 ## Roadmap
 
-- **Rounds 0–7.5** (done) — All 10 commands, auto-switch, statusline, doctor, fuzzy match, `--from` import
-- **Round 8** ✅ — tests (resolver + config; shell tests already exist)
-- **Round 9** ✅ — release infra (GoReleaser, Homebrew tap, npm wrapper, `curl | bash`)
+- **v0.1.0** ✅ — All 10 commands, auto-switch, statusline, doctor, fuzzy match, `--from` import, release infra (GoReleaser, Homebrew tap, npm wrapper, `curl | bash`)
+- **v0.1.2** ✅ — npm install symlink fix; `paddock link` auto-installs shell hook on first use
 - **v0.2** — `paddock costs` (per-profile spend), `paddock sync-mcp` (copy MCPs between profiles), `paddock snapshot create/restore`
 - **v0.3+** — TUI, team profiles (shared config via git)
 

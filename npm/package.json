@@ -1,6 +1,6 @@
 {
   "name": "paddockcli",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Multi-Claude Code account manager. Auto-switch per directory.",
   "bin": { "paddock": "bin/paddock" },
   "scripts": {
