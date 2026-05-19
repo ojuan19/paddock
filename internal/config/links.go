@@ -42,6 +42,23 @@ func LoadLinks() (*Links, error) {
 	return &l, nil
 }
 
+// RenameProfile rewrites every link value matching oldName to newName and
+// returns the affected paths so callers can target follow-up work (e.g.
+// updating .paddock files at those paths). Caller is responsible for Save().
+func (l *Links) RenameProfile(oldName, newName string) []string {
+	if l.Links == nil {
+		return nil
+	}
+	var affected []string
+	for path, name := range l.Links {
+		if name == oldName {
+			l.Links[path] = newName
+			affected = append(affected, path)
+		}
+	}
+	return affected
+}
+
 func (l *Links) Save() error {
 	l.Version = CurrentVersion
 	if l.Links == nil {

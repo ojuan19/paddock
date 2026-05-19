@@ -59,6 +59,7 @@ $ claude       # uses the personal account automatically; statusline shows [pers
 - `paddock add <name> [--color X] [--default] [--from <dir>]` — create profile (optionally import existing CLAUDE_CONFIG_DIR)
 - `paddock list` (`ls`, `--links`) — list profiles
 - `paddock link [<name>] [--yes]` — bind current dir (prompts to install shell hook on first link); `paddock unlink` to undo
+- `paddock rename <old> <new>` — rename a profile (config, directory, links, `.paddock` files)
 - `paddock use <name> [args...]` — launch claude with a specific profile
 - `paddock run [args...]` — launch claude with the profile resolved from cwd
 - `paddock which [--quiet]` — show which profile applies and why
