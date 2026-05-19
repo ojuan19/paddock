@@ -25,6 +25,7 @@ func newRootCmd() *cobra.Command {
 		commands.NewWhichCmd(),
 		commands.NewLinkCmd(),
 		commands.NewUnlinkCmd(),
+		commands.NewRenameCmd(),
 		commands.NewStatuslineCmd(),
 		commands.NewShellInitCmd(),
 		commands.NewDoctorCmd(),

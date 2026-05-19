@@ -52,6 +52,40 @@ type statuslineSettings struct {
 	} `json:"statusLine"`
 }
 
+// UpdateStatuslineCommand rewrites only the statusLine.{type,command,padding}
+// keys of <profile-dir>/settings.json, preserving any other keys (hooks,
+// permissions, etc.) the user or Claude may have added. Unlike
+// WriteStatuslineSettings, this is non-destructive: callers that mutate an
+// existing profile (e.g. rename) should use this.
+func UpdateStatuslineCommand(name, color string) error {
+	dir, err := Dir(name)
+	if err != nil {
+		return err
+	}
+	path := filepath.Join(dir, "settings.json")
+	raw := map[string]any{}
+	if data, err := os.ReadFile(path); err == nil {
+		// A corrupted existing file is tolerated by starting from an empty map;
+		// this matches the spirit of WriteStatuslineSettings (which overwrites).
+		_ = json.Unmarshal(data, &raw)
+	}
+	sl, _ := raw["statusLine"].(map[string]any)
+	if sl == nil {
+		sl = map[string]any{}
+	}
+	sl["type"] = "command"
+	sl["command"] = fmt.Sprintf("paddock statusline --profile %s --color %s", name, color)
+	if _, ok := sl["padding"]; !ok {
+		sl["padding"] = 0
+	}
+	raw["statusLine"] = sl
+	data, err := json.MarshalIndent(raw, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshaling statusline settings: %w", err)
+	}
+	return config.WriteFileAtomic(path, data)
+}
+
 // WriteStatuslineSettings writes <profile-dir>/settings.json telling Claude Code
 // to invoke `paddock statusline` for its statusline bar. Idempotent — overwrites.
 func WriteStatuslineSettings(name, color string) error {

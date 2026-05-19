@@ -99,6 +99,25 @@ func (c *Config) AutoAssignColor() string {
 	return AllowedColors[len(c.Profiles)%len(AllowedColors)]
 }
 
+// Rename swaps the map key from old to new and updates DefaultProfile if it
+// matched. Returns ErrProfileNotFound if old doesn't exist, ErrProfileExists if
+// new already does. Caller is responsible for Save().
+func (c *Config) Rename(oldName, newName string) error {
+	if _, ok := c.Profiles[newName]; ok {
+		return ErrProfileExists
+	}
+	p, ok := c.Profiles[oldName]
+	if !ok {
+		return ErrProfileNotFound
+	}
+	delete(c.Profiles, oldName)
+	c.Profiles[newName] = p
+	if c.DefaultProfile == oldName {
+		c.DefaultProfile = newName
+	}
+	return nil
+}
+
 func (c *Config) TouchLastUsed(name string) {
 	p, ok := c.Profiles[name]
 	if !ok {
