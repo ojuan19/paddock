@@ -9,6 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const crypto = require('crypto');
 const { execSync } = require('child_process');
 
 const BINARY_VERSION = '0.1.2';
@@ -56,6 +57,18 @@ function download(url, dest, redirectsLeft = 5) {
   try {
     console.log(`paddockcli: downloading ${ASSET} from ${URL}`);
     await download(URL, TGZ_PATH);
+
+    const CHECKSUMS_URL = `https://github.com/${REPO}/releases/download/v${BINARY_VERSION}/checksums.txt`;
+    const CHECKSUMS_PATH = path.join(TMP_DIR, 'checksums.txt');
+    await download(CHECKSUMS_URL, CHECKSUMS_PATH);
+    const actual = crypto.createHash('sha256')
+      .update(fs.readFileSync(TGZ_PATH)).digest('hex');
+    const expected = fs.readFileSync(CHECKSUMS_PATH, 'utf8')
+      .split('\n').find((l) => l.endsWith('  ' + ASSET));
+    if (!expected || !expected.startsWith(actual)) {
+      throw new Error(`checksum mismatch for ${ASSET}`);
+    }
+
     execSync(`tar -xzf "${TGZ_PATH}" -C "${TMP_DIR}"`);
     const extractedBin = path.join(TMP_DIR, 'paddock');
     fs.chmodSync(extractedBin, 0o755);

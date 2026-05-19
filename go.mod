@@ -1,6 +1,6 @@
 module github.com/ojuan19/paddock
 
-go 1.26.3
+go 1.21
 
 require (
 	github.com/charmbracelet/lipgloss v1.1.0
