@@ -31,7 +31,20 @@ TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
 echo "paddock install: downloading ${VERSION} for ${OS}/${ARCH}..."
-curl -fsSL "$URL" | tar -xz -C "$TMP"
+ARCHIVE="paddock_${OS}_${ARCH}.tar.gz"
+curl -fsSL -o "$TMP/$ARCHIVE" "$URL"
+curl -fsSL -o "$TMP/checksums.txt" \
+  "https://github.com/${REPO}/releases/download/${VERSION}/checksums.txt"
+
+if command -v sha256sum >/dev/null 2>&1; then
+  SHA_CMD="sha256sum"
+else
+  SHA_CMD="shasum -a 256"
+fi
+( cd "$TMP" && grep " ${ARCHIVE}$" checksums.txt | ${SHA_CMD} -c - ) \
+  || { echo "paddock install: checksum verification failed" >&2; exit 1; }
+
+tar -xz -C "$TMP" -f "$TMP/$ARCHIVE"
 
 # Install target
 SUDO=""

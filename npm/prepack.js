@@ -4,6 +4,15 @@
 const fs = require('fs');
 const path = require('path');
 
+const pkg = require('./package.json');
+const postinstallSrc = fs.readFileSync(path.join(__dirname, 'postinstall.js'), 'utf8');
+const m = postinstallSrc.match(/const BINARY_VERSION = '([^']+)'/);
+if (!m || m[1] !== pkg.version) {
+  throw new Error(
+    `prepack: BINARY_VERSION (${m && m[1]}) must equal package.json version (${pkg.version})`,
+  );
+}
+
 const BIN_DIR = path.join(__dirname, 'bin');
 const BIN_PATH = path.join(BIN_DIR, 'paddock');
 
