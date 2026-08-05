@@ -156,7 +156,16 @@ rm ~/work-dir/.envrc                                          # only if direnv w
 
 ## Contributing
 
-Project is alpha; opening it up for issues + PRs after v0.1 ships. Star the repo to follow along.
+Issues and PRs are open. If you're running paddock across a team or a fleet of
+accounts, [Discussions](https://github.com/ojuan19/paddock/discussions) is the
+place for setups, edge cases, and the v0.2 roadmap (cost tracking, MCP sync).
+
+## Who maintains this
+
+Built by [Juan Pablo Osorio](https://juanships.com). I run multiple Claude Code
+accounts daily across product and client work; paddock is the tool I wanted to
+exist. I also consult on Claude Code adoption at scale (accounts, cost
+governance, agent fleets): [juanships.com/work-with-me](https://juanships.com/work-with-me).
 
 ## License
 
